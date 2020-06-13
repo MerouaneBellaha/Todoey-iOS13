@@ -8,55 +8,74 @@
 
 import UIKit
 
-class ToDoListViewController: UITableViewController {
+final class ToDoListViewController: UITableViewController {
 
-    var tasks: [Task] = [] {
+    // MARK: - Properties
+
+    private var tasks: [Task] = [] {
         didSet {
             self.tableView.reloadData()
         }
     }
 
-    let dataFilePath = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first?.appendingPathComponent("Tasks.plist")
+    // Move to model ?
+    private let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
+
+    // MARK: - ViewLifeCycle
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        loadItems()
-
+        //        loadItems()
     }
     
     // MARK: - IBAction
 
     @IBAction func addButtonPressed(_ sender: UIBarButtonItem) {
-        let alertVC = UIAlertController(title: nil, message: "Add a task", preferredStyle: .alert)
-        alertVC.addTextField { $0.placeholder = "Write your task here" }
-        let action = UIAlertAction(title: "Add", style: .default) { _ in
-            guard let task = alertVC.textFields?.first?.text,
-                !task.isEmpty else { return }
-            self.tasks.append(Task(taskName: task))
-            self.saveTasks()
-
-        }
-        alertVC.addAction(action)
-        present(alertVC, animated: true)
+        displayAddTaskAlert()
     }
 
     // MARK: - Methods
 
-    // must add do / catch to manage error and unwrap dataFilePath
+    private func displayAddTaskAlert() {
+        let alert = UIAlertController(title: nil, message: "Add a task", preferredStyle: .alert)
+        alert.addTextField { $0.placeholder = "Write your task here" }
+        let action = UIAlertAction(title: "Add", style: .default) { _ in
+            guard let task = alert.textFields?.first?.text,
+                !task.isEmpty else { return }
+
+            self.manageNewTask(task: task)
+
+        }
+        alert.addAction(action)
+        present(alert, animated: true)
+    }
+
+    // Move to model ?
+    private func manageNewTask(task: String) {
+        let newTask = Task(context: self.context)
+        newTask.taskName = task
+        newTask.taskIsDone = false
+
+        self.tasks.append(newTask)
+        self.saveTasks()
+    }
+
+    // Move to model ?
     private func saveTasks() {
-        let encoder = PropertyListEncoder()
-
-        let data = try? encoder.encode(tasks)
-        try? data?.write(to: dataFilePath!)
+        do {
+            try context.save()
+        } catch {
+            print(error.localizedDescription)
+        }
     }
 
-    // must add do / catch to manage error and unwrap dataFilePath
-    private func loadItems() {
-        guard let data = try? Data(contentsOf: dataFilePath!) else { return }
-        let decoder = PropertyListDecoder()
-        guard let decodedData = try? decoder.decode([Task].self, from: data) else { return }
-        tasks = decodedData
-    }
+    //    // must add do / catch to manage error and unwrap dataFilePath
+    //    private func loadItems() {
+    //        guard let data = try? Data(contentsOf: dataFilePath!) else { return }
+    //        let decoder = PropertyListDecoder()
+    //        guard let decodedData = try? decoder.decode([Task].self, from: data) else { return }
+    //        tasks = decodedData
+    //    }
 
     // MARK: - TableView Datasource
 
@@ -80,7 +99,6 @@ class ToDoListViewController: UITableViewController {
         saveTasks()
         tableView.reloadData()
         tableView.deselectRow(at: indexPath, animated: true)
-
     }
 }
 
