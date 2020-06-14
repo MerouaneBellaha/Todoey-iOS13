@@ -18,14 +18,18 @@ final class ToDoListViewController: UITableViewController {
         }
     }
 
-    // Move to model ?
+    var coreDataManager: CoreDataManager?
+
     private let context = (UIApplication.shared.delegate as! AppDelegate).persistentContainer.viewContext
 
     // MARK: - ViewLifeCycle
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        //        loadItems()
+        coreDataManager = CoreDataManager(with: context)
+
+        guard let loadedItems: [Task] = coreDataManager?.loadItems() else { return }
+        tasks = loadedItems
     }
     
     // MARK: - IBAction
@@ -50,32 +54,35 @@ final class ToDoListViewController: UITableViewController {
         present(alert, animated: true)
     }
 
-    // Move to model ?
+    // Move to model ( TaskManager? ) ?
     private func manageNewTask(task: String) {
-        let newTask = Task(context: self.context)
+        let newTask = Task(context: context)
         newTask.taskName = task
         newTask.taskIsDone = false
 
-        self.tasks.append(newTask)
-        self.saveTasks()
+        tasks.append(newTask)
+        coreDataManager?.saveTasks()
     }
 
-    // Move to model ?
-    private func saveTasks() {
-        do {
-            try context.save()
-        } catch {
-            print(error.localizedDescription)
-        }
-    }
+// Moved to CoreDataManager
 
-    //    // must add do / catch to manage error and unwrap dataFilePath
-    //    private func loadItems() {
-    //        guard let data = try? Data(contentsOf: dataFilePath!) else { return }
-    //        let decoder = PropertyListDecoder()
-    //        guard let decodedData = try? decoder.decode([Task].self, from: data) else { return }
-    //        tasks = decodedData
-    //    }
+//    private func saveTasks() {
+//        do {
+//            try context.save()
+//        } catch {
+//            print(error.localizedDescription)
+//        }
+//    }
+
+//    private func loadItems() {
+//        let request: NSFetchRequest<Task> = Task.fetchRequest()
+//        do {
+//            tasks = try context.fetch(request)
+//        } catch {
+//            print(error.localizedDescription)
+//        }
+//    }
+
 
     // MARK: - TableView Datasource
 
@@ -96,7 +103,11 @@ final class ToDoListViewController: UITableViewController {
 
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tasks[indexPath.row].taskIsDone.toggle()
-        saveTasks()
+
+//        context.delete(tasks[indexPath.row])
+//        tasks.remove(at: indexPath.row)
+
+        coreDataManager?.saveTasks()
         tableView.reloadData()
         tableView.deselectRow(at: indexPath, animated: true)
     }
