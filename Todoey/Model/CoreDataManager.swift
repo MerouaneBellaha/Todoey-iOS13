@@ -8,8 +8,8 @@
 
 import CoreData
 
-class CoreDataManager {
-    let context: NSManagedObjectContext?
+final class CoreDataManager {
+    private let context: NSManagedObjectContext?
 
     init(with context: NSManagedObjectContext) {
         self.context = context
@@ -23,13 +23,17 @@ class CoreDataManager {
            }
        }
 
-    func loadItems<T: NSManagedObject>() -> [T] {
-        let request: NSFetchRequest<T> = T.fetchRequest() as! NSFetchRequest<T>
+    func loadItems<T: NSManagedObject>(with predicate: NSPredicate? = nil, sortBy descriptor: [NSSortDescriptor]? = nil) -> [T] {
+        let request = T.fetchRequest() as! NSFetchRequest<T>
+        request.predicate = predicate
+        request.sortDescriptors = descriptor
+        
+        var items: [T] = []
         do {
-            return try (context?.fetch(request) ?? [])
+            items = try context?.fetch(request) ?? []
         } catch {
             print(error.localizedDescription)
         }
-        return []
+        return items
     }
 }

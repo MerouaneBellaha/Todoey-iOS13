@@ -12,11 +12,7 @@ final class ToDoListViewController: UITableViewController {
 
     // MARK: - Properties
 
-    private var tasks: [Task] = [] {
-        didSet {
-            self.tableView.reloadData()
-        }
-    }
+    private var tasks: [Task] = [] { didSet { self.tableView.reloadData() }}
 
     var coreDataManager: CoreDataManager?
 
@@ -27,9 +23,7 @@ final class ToDoListViewController: UITableViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         coreDataManager = CoreDataManager(with: context)
-
-        guard let loadedItems: [Task] = coreDataManager?.loadItems() else { return }
-        tasks = loadedItems
+        loadAllTasks()
     }
     
     // MARK: - IBAction
@@ -39,6 +33,10 @@ final class ToDoListViewController: UITableViewController {
     }
 
     // MARK: - Methods
+
+    private func loadAllTasks() {
+        tasks = coreDataManager?.loadItems() ?? []
+    }
 
     private func displayAddTaskAlert() {
         let alert = UIAlertController(title: nil, message: "Add a task", preferredStyle: .alert)
@@ -64,24 +62,24 @@ final class ToDoListViewController: UITableViewController {
         coreDataManager?.saveTasks()
     }
 
-// Moved to CoreDataManager
+    // Moved to CoreDataManager
 
-//    private func saveTasks() {
-//        do {
-//            try context.save()
-//        } catch {
-//            print(error.localizedDescription)
-//        }
-//    }
+    //    private func saveTasks() {
+    //        do {
+    //            try context.save()
+    //        } catch {
+    //            print(error.localizedDescription)
+    //        }
+    //    }
 
-//    private func loadItems() {
-//        let request: NSFetchRequest<Task> = Task.fetchRequest()
-//        do {
-//            tasks = try context.fetch(request)
-//        } catch {
-//            print(error.localizedDescription)
-//        }
-//    }
+    //    private func loadItems() {
+    //        let request: NSFetchRequest<Task> = Task.fetchRequest()
+    //        do {
+    //            tasks = try context.fetch(request)
+    //        } catch {
+    //            print(error.localizedDescription)
+    //        }
+    //    }
 
 
     // MARK: - TableView Datasource
@@ -104,8 +102,8 @@ final class ToDoListViewController: UITableViewController {
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tasks[indexPath.row].taskIsDone.toggle()
 
-//        context.delete(tasks[indexPath.row])
-//        tasks.remove(at: indexPath.row)
+        //        context.delete(tasks[indexPath.row])
+        //        tasks.remove(at: indexPath.row)
 
         coreDataManager?.saveTasks()
         tableView.reloadData()
@@ -113,3 +111,16 @@ final class ToDoListViewController: UITableViewController {
     }
 }
 
+// MARK: - SearchBar Delegate
+
+extension ToDoListViewController: UISearchBarDelegate {
+
+    func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
+        let predicate = NSPredicate(format: "taskName CONTAINS[cd] %@", searchText)
+        let sortDescriptor = NSSortDescriptor(key: "taskName", ascending: true)
+
+        tasks = coreDataManager?.loadItems(with: predicate, sortBy: [sortDescriptor]) ?? []
+
+        if searchText.isEmpty { loadAllTasks() }
+    }
+}
